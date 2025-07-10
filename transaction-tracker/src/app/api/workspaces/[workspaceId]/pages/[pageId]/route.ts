@@ -14,9 +14,9 @@ export async function GET(req: NextRequest, { params }: { params: { workspaceId:
 }
 
 // PATCH: Rename a page
-export async function PATCH(req: NextRequest, { params }: { params: { workspaceId: string, pageId: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ workspaceId: string, pageId: string }> }) {
   await dbConnect();
-  const { workspaceId, pageId } = params;
+  const { workspaceId, pageId } = await params;
   const { name } = await req.json();
   const workspace = await Workspace.findById(workspaceId);
   if (!workspace) return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
@@ -28,9 +28,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { workspaceI
 }
 
 // DELETE: Delete a page
-export async function DELETE(req: NextRequest, { params }: { params: { workspaceId: string, pageId: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ workspaceId: string, pageId: string }> }) {
   await dbConnect();
-  const { workspaceId, pageId } = params;
+  const { workspaceId, pageId } = await params;
   const workspace = await Workspace.findById(workspaceId);
   if (!workspace) return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
   const page = workspace.pages.id(pageId);

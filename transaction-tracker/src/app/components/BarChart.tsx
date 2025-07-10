@@ -1,7 +1,4 @@
-// BarChart.tsx
-// Monthly expenses bar chart (react-chartjs-2)
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -15,19 +12,20 @@ import {
 import API from "@/lib/api";
 import { Transaction } from "@/types";
 import { useAppStore } from "@/lib/store";
+import { processTransactionData } from "@/lib/utils/transactionUtils";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
-
-function getWeekOfMonth(date: Date) {
-  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  return Math.ceil((date.getDate() + firstDay) / 7);
-}
 
 const BarChart = () => {
   const workspaceId = useAppStore((s) => s.selectedWorkspaceId);
   const pageId = useAppStore((s) => s.selectedPageId);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
+  const now = new Date();
+
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth());
+  const [selectedWeek, setSelectedWeek] = useState<number>(1);
 
   useEffect(() => {
     if (!workspaceId || !pageId) return;
@@ -37,59 +35,80 @@ const BarChart = () => {
       .finally(() => setLoading(false));
   }, [workspaceId, pageId]);
 
-  // Group by week and day for current month
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const dayLabels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-
-  // Prepare data: week -> day -> { credit, debit }
-  const weekData: { [week: number]: { [day: number]: { credit: number; debit: number } } } = {};
-  for (let w = 1; w <= 5; w++) {
-    weekData[w] = {};
-    for (let d = 1; d <= daysInMonth; d++) {
-      weekData[w][d] = { credit: 0, debit: 0 };
-    }
-  }
-  transactions.forEach((t) => {
-    const d = new Date(t.date);
-    if (d.getMonth() === month && d.getFullYear() === year) {
-      const day = d.getDate();
-      const week = getWeekOfMonth(d);
-      weekData[week][day][t.status] += t.amount;
-    }
-  });
-
-  // For current week, show bars for each day
-  const currentWeek = getWeekOfMonth(now);
-  const data = {
-    labels: dayLabels.filter(day => getWeekOfMonth(new Date(year, month, day)) === currentWeek),
-    datasets: [
-      {
-        label: "Credit",
-        backgroundColor: "#22c55e",
-        data: dayLabels.filter(day => getWeekOfMonth(new Date(year, month, day)) === currentWeek).map(day => weekData[currentWeek][day].credit),
-      },
-      {
-        label: "Debit",
-        backgroundColor: "#ef4444",
-        data: dayLabels.filter(day => getWeekOfMonth(new Date(year, month, day)) === currentWeek).map(day => weekData[currentWeek][day].debit),
-      },
-    ],
-  };
+  const { data } = useMemo(
+    () => processTransactionData(transactions, selectedYear, selectedMonth, selectedWeek),
+    [transactions, selectedYear, selectedMonth, selectedWeek]
+  );
 
   return (
-    <div className="bg-card p-4 rounded-lg border">
-      <div className="mb-2 font-semibold">Monthly Expenses (Week {currentWeek})</div>
+    <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border shadow transition-all duration-300">
+      <div className="flex gap-4 mb-4 flex-wrap">
+        <div>
+          <label className="block text-xs mb-1 font-semibold">Select Year:</label>
+          <select
+            className="border rounded-lg px-3 py-2 bg-zinc-50 dark:bg-zinc-800 text-sm"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+          >
+            {Array.from({ length: 11 }, (_, i) => now.getFullYear() - 5 + i).map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs mb-1 font-semibold">Select Month:</label>
+          <select
+            className="border rounded-lg px-3 py-2 bg-zinc-50 dark:bg-zinc-800 text-sm"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+          >
+            {Array.from({ length: 12 }, (_, i) => (
+              <option key={i} value={i}>
+                {new Date(0, i).toLocaleString("default", { month: "long" })}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs mb-1 font-semibold">Select Week:</label>
+          <select
+            className="border rounded-lg px-3 py-2 bg-zinc-50 dark:bg-zinc-800 text-sm"
+            value={selectedWeek}
+            onChange={(e) => setSelectedWeek(Number(e.target.value))}
+          >
+            {[1, 2, 3, 4, 5].map((w) => (
+              <option key={w} value={w}>
+                Week {w}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {loading ? (
-        <div className="text-center text-muted-foreground">Loading...</div>
+        <div className="text-center text-muted-foreground py-8">Loading...</div>
       ) : (
-        <Bar data={data} options={{ responsive: true, plugins: { legend: { position: "top" } } }} />
+        <>
+          <div className="mb-2 font-semibold text-center">
+            Monthly Expenses ({selectedYear} - {new Date(0, selectedMonth).toLocaleString("default", { month: "long" })} - Week {selectedWeek})
+          </div>
+          <div className="bg-white dark:bg-zinc-900 rounded-xl p-2 shadow">
+            <Bar
+              data={data}
+              options={{
+                responsive: true,
+                plugins: { legend: { position: "top" } },
+              }}
+            />
+          </div>
+        </>
       )}
     </div>
   );
 };
-
 
 export default BarChart;

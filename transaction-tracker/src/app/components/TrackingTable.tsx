@@ -55,10 +55,10 @@ const TrackingTable = () => {
   };
 
   return (
-    <div className="overflow-x-auto rounded-lg border bg-card p-4">
-      <div className="flex justify-between mb-2">
-        <span className="font-semibold">Transactions</span>
-        <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>Add Transaction</button>
+    <div className="overflow-x-auto rounded-2xl border bg-white dark:bg-zinc-900 p-6 shadow transition-all duration-300">
+      <div className="flex justify-between items-center mb-4">
+        <span className="font-semibold text-lg">Transactions</span>
+        <button className="rounded-lg bg-primary text-white px-4 py-2 shadow hover:bg-primary/90 transition-all duration-200" onClick={() => { setEditing(null); setShowForm(true); }}>Add Transaction</button>
       </div>
       {showForm && (
         <TransactionForm
@@ -67,39 +67,41 @@ const TrackingTable = () => {
           onCancel={() => { setShowForm(false); setEditing(null); }}
         />
       )}
-      <table className="min-w-full text-sm">
-        <thead>
-          <tr>
-            <th>Amount</th>
-            <th>Currency</th>
-            <th>Date</th>
-            <th>Status</th>
-            <th>Description</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading ? (
-            <tr><td colSpan={6} className="text-center">Loading...</td></tr>
-          ) : transactions.length === 0 ? (
-            <tr><td colSpan={6} className="text-center">No transactions</td></tr>
-          ) : (
-            transactions.map((t) => (
-              <tr key={t._id}>
-                <td>{t.amount}</td>
-                <td>{currencyIcons[t.currency] || t.currency}</td>
-                <td>{t.date?.slice(0, 10)}</td>
-                <td>{t.status}</td>
-                <td>{t.description}</td>
-                <td>
-                  <button className="btn btn-xs btn-outline mr-2" onClick={() => { setEditing(t); setShowForm(true); }}>Edit</button>
-                  <button className="btn btn-xs btn-error" onClick={() => handleDelete(t._id!)}>Delete</button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm rounded-lg">
+          <thead>
+            <tr className="bg-zinc-100 dark:bg-zinc-800">
+              <th className="text-center align-middle py-3 px-2">Amount</th>
+              <th className="text-center align-middle py-3 px-2">Currency</th>
+              <th className="text-center align-middle py-3 px-2">Date</th>
+              <th className="text-center align-middle py-3 px-2">Status</th>
+              <th className="text-center align-middle py-3 px-2">Description</th>
+              <th className="text-center align-middle py-3 px-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={6} className="text-center align-middle py-4">Loading...</td></tr>
+            ) : transactions.length === 0 ? (
+              <tr><td colSpan={6} className="text-center align-middle py-4">No transactions</td></tr>
+            ) : (
+              transactions.map((t, idx) => (
+                <tr key={t._id} className={`text-center align-middle transition-colors duration-200 ${idx % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-950' : 'bg-white dark:bg-zinc-900'} hover:bg-primary/10 dark:hover:bg-primary/20`}>
+                  <td className="align-middle py-2 px-2">{t.amount}</td>
+                  <td className="align-middle py-2 px-2">{currencyIcons[t.currency] || t.currency}</td>
+                  <td className="align-middle py-2 px-2">{t.date?.slice(0, 10)}</td>
+                  <td className="align-middle py-2 px-2 capitalize">{t.status}</td>
+                  <td className="align-middle py-2 px-2">{t.description}</td>
+                  <td className="align-middle py-2 px-2">
+                    <button className="rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 px-2 py-1 mr-2 hover:bg-primary/20 transition-all duration-200" onClick={() => { setEditing(t); setShowForm(true); }}>Edit</button>
+                    <button className="rounded bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 px-2 py-1 hover:bg-red-200 dark:hover:bg-red-800 transition-all duration-200" onClick={() => handleDelete(t._id!)}>Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
